@@ -160,11 +160,11 @@ Hydra attempting SSH credentials against the victim machine. Each line represent
 
 ---
 
-### 2. Splunk Raw Auth Log Events - Failed Password Entries
+### 2. Splunk Auth Log Timechart - All Events by Host
 
-Splunk ingesting the victim's /var/log/auth.log in real time. Every "Failed password" line is a single Hydra attempt, visible within seconds of the attack.
+Splunk timechart of the full auth.log stream broken down by host. The spike at 14:46 on ip-172-31-3-95 confirms the victim machine received a burst of authentication traffic matching the exact Hydra attack window.
 
-![Raw Events](screenshots/03-splunk-raw-auth-log-events.png)
+![Auth Log Timechart](screenshots/03-splunk-authlog-timechart-by-host.png)
 
 ---
 
