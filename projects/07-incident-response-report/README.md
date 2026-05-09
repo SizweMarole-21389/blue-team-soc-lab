@@ -198,11 +198,11 @@ The statistics table shows exactly when the brute force attack occurred: 9 faile
 
 ---
 
-### 2. AWS Security Group - SSH Access Restricted (Containment Action)
+### 2. AWS EC2 - Attacker VM Force-Stopped (Containment Action)
 
-The AWS security group inbound rules being configured to restrict SSH access. This is the primary containment action taken after the incident: replacing the wide-open port 22 rule with a source-restricted rule that only allows SSH from authorised IP ranges.
+The AWS console in af-south-1 (Africa Cape Town) confirming the force-stop of the attacker-side EC2 instance as a containment action. The green notification banner confirms the stop was initiated. Instance IDs and public IPs have been redacted. This is the fastest way to cut off an active attacker who has compromised an EC2 instance.
 
-![Security Group](screenshots/02-aws-security-group-remediation.png)
+![EC2 Containment](screenshots/02-aws-ec2-attacker-vm-stopped.png)
 
 ---
 
