@@ -1,0 +1,77 @@
+|==============================================================================|
+| brute-force-alert.spl                                                       |
+| Splunk detection rule for SSH brute force attacks                           |
+| MITRE ATT&CK: T1110.001 - Brute Force: Password Guessing                   |
+| Data source: /var/log/auth.log (via Splunk Universal Forwarder)             |
+| Confirmed results: 36 failed logins from 197.185.162.135 in 15 minutes      |
+|==============================================================================|
+
+
+| QUERY 1 - COUNT FAILED LOGINS PER SOURCE IP (PRIMARY DETECTION)
+| Save this as a Splunk Alert: Scheduled, run every hour, trigger if count > 5
+
+index=* source="/var/log/auth.log" "Failed password"
+| rex "from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| stats count by src_ip
+| where count > 5
+| sort -count
+| eval severity=case(count > 50, "critical", count > 20, "high", count > 5, "medium")
+| table src_ip, count, severity
+
+
+| QUERY 2 - TIMECHART OF FAILED LOGINS (VISUALISATION FOR DASHBOARD)
+| Use this as a line chart panel in the SOC dashboard
+
+index=* source="/var/log/auth.log" "Failed password"
+| timechart span=1m count as failed_logins_per_minute
+
+
+| QUERY 3 - BRUTE FORCE WITH ENRICHED CONTEXT (FULL INVESTIGATION VIEW)
+| Shows the targeted username, source IP, and timing together
+
+index=* source="/var/log/auth.log" "Failed password"
+| rex "Failed password for (?P<username>\S+) from (?P<src_ip>\d+\.\d+\.\d+\.\d+) port (?P<src_port>\d+)"
+| stats count min(_time) as first_seen max(_time) as last_seen by src_ip, username, host
+| eval first_seen=strftime(first_seen, "%Y-%m-%d %H:%M:%S")
+| eval last_seen=strftime(last_seen, "%Y-%m-%d %H:%M:%S")
+| eval attack_duration_sec=round(strptime(last_seen, "%Y-%m-%d %H:%M:%S") - strptime(first_seen, "%Y-%m-%d %H:%M:%S"), 0)
+| where count > 5
+| sort -count
+| table src_ip, username, host, count, first_seen, last_seen, attack_duration_sec
+
+
+| QUERY 4 - DETECT SUCCESSFUL LOGIN AFTER BRUTE FORCE (CRITICAL ALERT)
+| If an "Accepted" login appears from the same IP as a brute force source,
+| this indicates the brute force succeeded - escalate to P1 immediately.
+
+index=* source="/var/log/auth.log"
+| rex "(?P<event_type>Failed password|Accepted (?:password|publickey)) for (?P<username>\S+) from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| stats count(eval(event_type="Failed password")) as failures,
+        count(eval(like(event_type, "Accepted%"))) as successes
+  by src_ip, username
+| where failures > 5 AND successes > 0
+| eval severity="CRITICAL - brute force succeeded"
+| table src_ip, username, failures, successes, severity
+
+
+| QUERY 5 - REAL-TIME SINGLE VALUE ALERT RULE
+| Paste this into Splunk > Save As > Alert
+| Trigger condition: Number of Results is greater than 0
+| Schedule: Real-time
+
+index=* source="/var/log/auth.log" "Failed password"
+| rex "from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| bucket _time span=5m
+| stats count by src_ip, _time
+| where count > 10
+
+
+| ALERT SETTINGS (configured in Splunk UI)
+|
+|   Title:          SSH Brute Force Detected
+|   Alert type:     Scheduled
+|   Schedule:       Run every 1 hour
+|   Time range:     Last 1 hour
+|   Trigger:        Number of Results > 0
+|   Severity:       High
+|   Actions:        Send email / add to notable events

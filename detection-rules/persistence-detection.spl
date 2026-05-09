@@ -1,0 +1,140 @@
+|==============================================================================|
+| persistence-detection.spl                                                   |
+| Splunk detection rules for persistence and privilege escalation             |
+| MITRE ATT&CK:                                                               |
+|   T1053.003 - Scheduled Task/Job: Cron                                     |
+|   T1136.001 - Create Account: Local Account                                |
+|   T1548     - Abuse Elevation Control Mechanism                            |
+| Data source: /var/log/audit/audit.log (auditd via Splunk UF)               |
+| Confirmed results: events captured after simulation on 09/05/2026          |
+|==============================================================================|
+
+
+| QUERY 1 - CATCH-ALL HUNT: ALL THREE THREAT CATEGORIES (PRIMARY DETECTION)
+| This is the main query I confirmed in Splunk. It returns all events tagged
+| with the three auditd keys and surfaces them in a clean table.
+
+index=* source="/var/log/audit/audit.log"
+  "user_modification" OR "persistence" OR "privilege_escalation"
+| rex "type=(?P<record_type>\w+)"
+| rex "key=\"(?P<key>[^\"]+)\""
+| rex "comm=\"(?P<command>[^\"]+)\""
+| rex "exe=\"(?P<executable>[^\"]+)\""
+| rex "auid=(?P<auid>\d+)"
+| rex "uid=(?P<uid>\d+)"
+| table _time, host, record_type, key, command, executable, auid, uid
+| sort -_time
+
+
+| QUERY 2 - CRON PERSISTENCE ONLY (T1053.003)
+| Detects any write to cron directories or crontab files.
+
+index=* source="/var/log/audit/audit.log" key="persistence"
+| rex "comm=\"(?P<command>[^\"]+)\""
+| rex "exe=\"(?P<executable>[^\"]+)\""
+| rex "auid=(?P<auid>\d+)"
+| rex "name=\"(?P<file_name>[^\"]+)\""
+| stats count min(_time) as first_seen max(_time) as last_seen by host, command, executable, auid, file_name
+| eval first_seen=strftime(first_seen, "%Y-%m-%d %H:%M:%S")
+| eval last_seen=strftime(last_seen, "%Y-%m-%d %H:%M:%S")
+| eval severity="high"
+| table host, command, executable, auid, file_name, count, first_seen, last_seen, severity
+
+
+| QUERY 3 - USER ACCOUNT CREATION AND MODIFICATION (T1136.001)
+| Detects useradd, usermod, userdel, passwd, and /etc/passwd writes.
+
+index=* source="/var/log/audit/audit.log" key="user_modification"
+| rex "comm=\"(?P<command>[^\"]+)\""
+| rex "auid=(?P<auid>\d+)"
+| rex "uid=(?P<uid>\d+)"
+| where command IN ("useradd", "usermod", "userdel", "adduser", "deluser", "passwd")
+| stats count by _time, host, command, auid, uid
+| eval severity=case(command="useradd" OR command="adduser", "high",
+                     command="usermod", "medium",
+                     command="userdel" OR command="deluser", "medium",
+                     true(), "low")
+| table _time, host, command, auid, uid, severity
+| sort -_time
+
+
+| QUERY 4 - PRIVILEGE ESCALATION ATTEMPTS (T1548)
+| Detects sudo and su usage. Flag any auid that is not a known admin.
+
+index=* source="/var/log/audit/audit.log" key="privilege_escalation"
+| rex "comm=\"(?P<command>[^\"]+)\""
+| rex "auid=(?P<auid>\d+)"
+| rex "uid=(?P<uid>\d+)"
+| stats count by host, command, auid, uid
+| sort -count
+| eval alert=if(command="sudo" AND uid="0", "escalation to root confirmed", "privilege check")
+| table host, command, auid, uid, count, alert
+
+
+| QUERY 5 - REAL-TIME ALERT: BACKDOOR USER CREATED
+| Triggers immediately when a new user is added via useradd.
+| This is a high-severity event in any production environment.
+
+index=* source="/var/log/audit/audit.log"
+| rex "comm=\"(?P<command>[^\"]+)\""
+| where command="useradd" OR command="adduser"
+| rex "auid=(?P<auid>\d+)"
+| eval severity="HIGH - New user account created"
+| table _time, host, command, auid, severity
+
+
+| QUERY 6 - CRON BACKDOOR EXECUTION DETECTION
+| Once a malicious cron job is in place, it runs every minute. This query
+| detects the curl or wget execution that indicates C2 communication.
+
+index=* source="/var/log/audit/audit.log"
+| rex "comm=\"(?P<command>[^\"]+)\""
+| rex "exe=\"(?P<executable>[^\"]+)\""
+| where executable IN ("/usr/bin/curl", "/usr/bin/wget", "/bin/bash", "/bin/sh")
+| rex "ppid=(?P<ppid>\d+)"
+| rex "pid=(?P<pid>\d+)"
+| stats count by _time, host, executable, command
+| eval indicator="possible cron C2 beacon"
+| table _time, host, executable, command, count, indicator
+
+
+| QUERY 7 - SUDOERS FILE MODIFICATION
+| Any change to /etc/sudoers or /etc/sudoers.d is a critical event.
+| Attackers modify sudoers to give themselves persistent root access.
+
+index=* source="/var/log/audit/audit.log" key="user_modification"
+| rex "name=\"(?P<file_name>[^\"]+)\""
+| where like(file_name, "%sudoers%")
+| rex "auid=(?P<auid>\d+)"
+| eval severity="CRITICAL - sudoers file modified"
+| table _time, host, file_name, auid, severity
+| sort -_time
+
+
+| QUERY 8 - TIMECHART FOR DASHBOARD: ALL SECURITY EVENTS BY CATEGORY
+
+index=* source="/var/log/audit/audit.log"
+  key="persistence" OR key="user_modification" OR key="privilege_escalation"
+| rex "key=\"(?P<key>[^\"]+)\""
+| timechart span=5m count by key
+
+
+| ALERT SETTINGS (configured in Splunk UI)
+|
+|   Alert 1:
+|     Title:     Cron Persistence Detected
+|     Query:     Query 2 above
+|     Trigger:   Number of Results > 0
+|     Severity:  High
+|
+|   Alert 2:
+|     Title:     New User Account Created
+|     Query:     Query 5 above
+|     Trigger:   Number of Results > 0
+|     Severity:  High
+|
+|   Alert 3:
+|     Title:     Sudoers File Modified
+|     Query:     Query 7 above
+|     Trigger:   Number of Results > 0
+|     Severity:  Critical
