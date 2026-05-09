@@ -152,27 +152,43 @@ If this alert fires in a real environment, the recommended response steps are:
 
 ## Screenshots
 
-### Splunk Timechart - Auth Log Activity Spike During Attack
+### 1. Hydra Running on Kali - Live Brute Force Attack
 
-The chart shows the burst of authentication events between 14:44 and 14:46 on 09/05/2026 - the exact window when Hydra was running.
+Hydra attempting SSH credentials against the victim machine. Each line represents one failed password attempt cycling through the wordlist.
 
-![Splunk Timechart](screenshots/01-splunk-timechart-auth-log.png)
-
----
-
-### Splunk Detection Results - 36 Failed Logins from Single IP
-
-The SPL query returned one result: 197.185.162.135 with a count of 36. This is a confirmed brute force attack.
-
-![Splunk Brute Force Stats](screenshots/02-splunk-brute-force-stats.png)
+![Hydra Terminal](screenshots/05-hydra-brute-force-running.png)
 
 ---
 
-### Splunk Alert Configuration - Saved as Real-Time Alert
+### 2. Splunk Raw Auth Log Events - Failed Password Entries
 
-The detection was saved as a scheduled Splunk alert that triggers whenever failed login counts exceed the threshold.
+Splunk ingesting the victim's /var/log/auth.log in real time. Every "Failed password" line is a single Hydra attempt, visible within seconds of the attack.
 
-![Splunk Alert](screenshots/03-splunk-brute-force-alert.png)
+![Raw Events](screenshots/03-splunk-raw-auth-log-events.png)
+
+---
+
+### 3. Splunk Timechart - Failed Login Spike
+
+The line chart shows failed logins peaking at 27 attempts in a single 5-minute bucket at 15:25 on 09/05/2026, the exact window Hydra was active.
+
+![Timechart](screenshots/01-splunk-failed-logins-timechart.png)
+
+---
+
+### 4. Splunk Stats - 36 Failed Logins Attributed to Attacker IP
+
+The SPL query `stats count by src_ip` returned one result: 197.185.162.135 with a total of 36 failed login attempts confirmed.
+
+![Attacker IP Stats](screenshots/02-splunk-attacker-ip-stats.png)
+
+---
+
+### 5. Splunk Save As Alert - Brute Force Alert Configured
+
+The detection was saved as a scheduled Splunk alert to fire every hour when failed login counts exceed the threshold.
+
+![Alert Config](screenshots/04-splunk-save-as-alert.png)
 
 ---
 

@@ -224,19 +224,27 @@ zeek -r capture.pcap
 
 ## Screenshots
 
-### tcpdump Running on the Victim Machine
+### 1. tcpdump Live Capture on the Victim
 
-Capturing 200 packets on the ens5 interface during the attack simulation. The output confirms 221 packets received with 0 dropped by the kernel.
+tcpdump running on the victim's ens5 interface and writing to /tmp/capture.pcap. The output confirms 200 packets captured, 221 received by filter, and 0 dropped by the kernel - a clean capture with no data loss.
 
-![tcpdump Capture](screenshots/01-tcpdump-capture.png)
+![tcpdump](screenshots/01-tcpdump-live-capture.png)
 
 ---
 
-### Wireshark - Packet Analysis of Captured Traffic
+### 2. Wireshark Conversations - Attacker to Victim Traffic Summary
 
-Wireshark showing the conversation table for the brute force traffic. The flow between the attacker IP and victim IP on port 22 is clearly visible, along with the rapid packet sequence consistent with Hydra's connection pattern.
+The Conversations table summarises the entire captured session: 172.31.3.95 (victim) to 197.185.162.135 (attacker), 114 total packets, 12 kB exchanged in 1.13 seconds. This duration and packet volume for a single TCP conversation is the unmistakable fingerprint of an automated attack tool.
 
-![Wireshark Analysis](screenshots/02-wireshark-packet-analysis.png)
+![Wireshark Conversations](screenshots/02-wireshark-conversations.png)
+
+---
+
+### 3. Wireshark Raw Packet List - SSH Attack Stream
+
+The raw packet view shows the individual TCP frames making up the attack session. The sequence of SSHv2 encrypted packets alternating between client and server confirms the brute force tool was completing full TCP handshakes before each authentication attempt.
+
+![Wireshark Packets](screenshots/03-wireshark-packet-list.png)
 
 ---
 

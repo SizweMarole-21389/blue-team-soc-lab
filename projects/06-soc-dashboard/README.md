@@ -235,16 +235,24 @@ When I designed this dashboard I followed these SOC monitoring best practices:
 
 ## Screenshots
 
-### Splunk - Total Event Count Across All Log Sources
+### 1. Splunk - Total Event Count (1,977 Events in 24 Hours)
 
-The single value panel shows 1,977 total events ingested from the victim machine over the last 24 hours. This gives an at-a-glance health check of the data pipeline and establishes the baseline for anomaly detection.
+The single-value visualisation shows 1,977 events ingested across all log sources in the previous 24 hours. This is the SOC dashboard health check panel - it confirms the data pipeline is active and establishes the daily event baseline.
 
 ![Total Events](screenshots/01-splunk-total-events.png)
 
 ---
 
-### AWS EC2 - Lab Infrastructure (af-south-1)
+### 2. Save Panel to New Dashboard - Authentication Events Over Time
 
-Both EC2 instances in the Africa Cape Town region: the Splunk server and the Ubuntu 24.04 victim machine. Instance IDs and IPs have been redacted for security.
+Saving a timechart panel to a new Splunk dashboard titled "Authentication Events Over Time". This is how each detection query gets promoted from a one-off search into a persistent monitoring panel visible to every analyst on shift.
 
-![AWS EC2 Instances](screenshots/02-aws-ec2-instances.png)
+![Dashboard Creation](screenshots/02-splunk-save-panel-to-dashboard.png)
+
+---
+
+### 3. AWS EC2 - Both Lab Instances Running (af-south-1)
+
+The AWS console showing both EC2 instances in the Africa Cape Town region: the Splunk server and the Ubuntu 24.04 victim machine. Instance IDs and public IPs have been redacted. Both instances show a healthy status check.
+
+![AWS EC2](screenshots/03-aws-ec2-lab-instances.png)

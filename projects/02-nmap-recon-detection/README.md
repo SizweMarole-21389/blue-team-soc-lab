@@ -160,6 +160,32 @@ This PCAP analysis is covered in detail in [Project 04 - PCAP Network Forensics]
 
 ---
 
+## Screenshots
+
+### 1. Splunk - Connection Events from Attacker IP
+
+Splunk shows a burst of "Connection closed" and authentication events from 197.185.162.135 within a narrow time window. This pattern of rapid, repeated connection attempts to port 22 is the auth.log fingerprint of a port scanner probing the SSH service.
+
+![Splunk Connection Events](screenshots/01-splunk-connection-events.png)
+
+---
+
+### 2. Wireshark - Raw Packet List of Captured Traffic
+
+The Wireshark packet list shows the TCP session stream between the attacker (197.185.162.135) and the victim (172.31.3.95). The rapid sequence of SSH-encrypted packets within seconds confirms automated tooling, not human interaction.
+
+![Wireshark Packet List](screenshots/02-wireshark-raw-packets.png)
+
+---
+
+### 3. Wireshark - Conversations Table
+
+The Conversations view summarises the entire capture: one conversation between 172.31.3.95 and 197.185.162.135, 114 packets, 12 kB transferred in 1.13 seconds. A 1.13 second duration for 114 packets is impossible for human-driven activity and is a definitive automated scan or attack indicator.
+
+![Wireshark Conversations](screenshots/03-wireshark-conversations-table.png)
+
+---
+
 ## Files
 
 - [../../detection-rules/recon-detection.spl](../../detection-rules/recon-detection.spl) - Full Splunk detection rule
