@@ -1,0 +1,95 @@
+|==============================================================================|
+| recon-detection.spl                                                         |
+| Splunk detection rules for network reconnaissance (Nmap scanning)           |
+| MITRE ATT&CK: T1046 - Network Service Discovery                             |
+| Data sources: /var/log/auth.log, /var/log/syslog, /var/log/ufw.log         |
+|==============================================================================|
+
+
+| QUERY 1 - DETECT HIGH CONNECTION RATE FROM SINGLE IP (PRIMARY DETECTION)
+| A single IP making many connection attempts in a short window is the
+| clearest auth.log indicator of a port scan. Threshold of 20+ is conservative.
+
+index=* source="/var/log/auth.log"
+| rex "from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| bucket _time span=1m
+| stats count by src_ip, _time
+| where count > 20
+| sort -count
+| eval indicator="high connection rate - possible scan"
+| table _time, src_ip, count, indicator
+
+
+| QUERY 2 - DETECT PORT SCAN VIA UFW BLOCKED CONNECTIONS
+| When UFW (Linux firewall) is enabled, blocked connection attempts are logged.
+| An IP probing many distinct destination ports is a port scanner.
+
+index=* source="/var/log/ufw.log" "BLOCK"
+| rex "SRC=(?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| rex "DPT=(?P<dst_port>\d+)"
+| rex "DST=(?P<dst_ip>\d+\.\d+\.\d+\.\d+)"
+| bucket _time span=5m
+| stats dc(dst_port) as ports_probed, values(dst_port) as port_list by src_ip, dst_ip, _time
+| where ports_probed > 15
+| sort -ports_probed
+| eval severity=case(ports_probed > 100, "high", ports_probed > 50, "medium", ports_probed > 15, "low")
+| table _time, src_ip, dst_ip, ports_probed, severity, port_list
+
+
+| QUERY 3 - DETECT NMAP SERVICE VERSION SCAN PATTERN IN SYSLOG
+| Nmap service detection (-sV) triggers service banners and may generate
+| kernel or application messages in syslog.
+
+index=* source="/var/log/syslog"
+| rex "(?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| bucket _time span=1m
+| stats count by src_ip, _time
+| where count > 50
+| sort -count
+| eval indicator="high syslog event rate - possible scan"
+| table _time, src_ip, count, indicator
+
+
+| QUERY 4 - CORRELATION: SCAN FOLLOWED BY BRUTE FORCE (HIGH FIDELITY)
+| The classic attack chain is recon then exploitation. This query detects
+| an IP that appears in both scan patterns and brute force events,
+| indicating an active targeted attack in progress.
+
+index=* source="/var/log/auth.log"
+| rex "from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| rex "(?P<event_type>Failed password|Invalid user|Connection closed)"
+| bucket _time span=30m
+| stats count by src_ip, event_type, _time
+| where count > 5
+| eval phase=if(event_type="Failed password", "brute_force", "reconnaissance")
+| table _time, src_ip, event_type, count, phase
+
+
+| QUERY 5 - INVALID USER ATTEMPTS (SERVICE ENUMERATION)
+| Nmap NSE scripts and manual enumeration often generate "Invalid user"
+| entries when probing for common account names.
+
+index=* source="/var/log/auth.log" "Invalid user"
+| rex "Invalid user (?P<username>\S+) from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| stats count dc(username) as unique_usernames by src_ip
+| where count > 5
+| sort -count
+| eval indicator="username enumeration - possible recon"
+| table src_ip, count, unique_usernames, indicator
+
+
+| QUERY 6 - DASHBOARD TIMECHART FOR SCANNING EVENTS
+| Use this as a line chart in the SOC dashboard to visualise scanning spikes.
+
+index=* source="/var/log/auth.log" ("Failed password" OR "Invalid user" OR "Connection closed")
+| rex "from (?P<src_ip>\d+\.\d+\.\d+\.\d+)"
+| timechart span=1m count by src_ip limit=5
+
+
+| ALERT SETTINGS (configured in Splunk UI)
+|
+|   Title:          Network Reconnaissance Detected
+|   Alert type:     Real-time
+|   Trigger:        Number of Results > 0
+|   Severity:       Medium
+|   Actions:        Send email / add to notable events

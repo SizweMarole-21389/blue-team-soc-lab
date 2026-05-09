@@ -1,0 +1,88 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sensitive files - never commit these
+*.pem
+*.key
+*.ovpn
+id_rsa
+id_ed25519
+*.p12
+*.pfx
+credentials
+credentials.json
+.env
+.env.*
+aws-credentials
+config.ini
+
+# Splunk sensitive config
+outputs.conf
+inputs.conf
+*.conf.bak
+
+# Password files and wordlists
+password.txt
+passwords.txt
+rockyou.txt
+wordlist.txt
+*.wordlist
+
+# PCAP files (can be large and may contain sensitive traffic)
+*.pcap
+*.pcapng
+*.cap
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+/tmp/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+venv/
+env/
+.venv/
+
+# Nmap output files
+*.nmap
+*.gnmap
+*.xml
+
+# Hydra output files
+hydra-results-*.txt
+
+# Archive files
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# Node modules (if any scripts use Node)
+node_modules/
+npm-debug.log*
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
