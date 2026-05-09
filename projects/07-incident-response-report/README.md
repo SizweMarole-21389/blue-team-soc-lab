@@ -188,6 +188,32 @@ The primary enablers of this attack were:
 
 ---
 
+## 10. Screenshots - Evidence Summary
+
+### 1. Splunk Attack Timeline - Failed Login Distribution by Time Bucket
+
+The statistics table shows exactly when the brute force attack occurred: 9 failed logins at 15:20, then 27 at 15:25 - a total of 36 events. The burst pattern confirms an automated tool, not manual login attempts. This table is the primary evidence used to establish the attack timeline in Section 2 of this report.
+
+![Attack Timeline](screenshots/01-splunk-attack-timeline.png)
+
+---
+
+### 2. AWS Security Group - SSH Access Restricted (Containment Action)
+
+The AWS security group inbound rules being configured to restrict SSH access. This is the primary containment action taken after the incident: replacing the wide-open port 22 rule with a source-restricted rule that only allows SSH from authorised IP ranges.
+
+![Security Group](screenshots/02-aws-security-group-remediation.png)
+
+---
+
+### 3. Splunk Universal Forwarder Confirmed Running
+
+The Splunk Universal Forwarder confirmed active on the victim machine and successfully forwarding logs to the Splunk indexer. This screenshot demonstrates that the monitoring infrastructure was in place before, during, and after the attack - validating the detection capability.
+
+![Forwarder](screenshots/03-splunk-forwarder-confirmed.png)
+
+---
+
 ## 11. Analyst Notes
 
 This incident was conducted as a controlled simulation within my personal AWS lab environment. All attack actions were performed by me against infrastructure I own and control. No real systems or third parties were affected.

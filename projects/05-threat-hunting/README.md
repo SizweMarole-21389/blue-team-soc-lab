@@ -229,19 +229,27 @@ index=* source="/var/log/audit/audit.log" key="privilege_escalation"
 
 ## Screenshots
 
-### auditd Logging Persistence and User Modification Events
+### 1. auditd Streaming Live Kernel Audit Events
 
-The victim terminal shows auditd capturing kernel-level audit events. The raw log entries contain the persistence and user_modification keys, confirming auditd is monitoring cron modifications and account creation.
+The victim terminal shows auditd generating raw kernel-level audit log entries in real time. The SYSCALL records contain the persistence and user_modification keys, proving auditd captured every simulated attack action at the kernel level before it could be hidden.
 
-![auditd Events](screenshots/01-auditd-persistence-events.png)
+![auditd Live](screenshots/01-auditd-live-events.png)
 
 ---
 
-### Splunk Hunt Results - All Three Threat Categories Confirmed
+### 2. ausearch Output - All Three Attack Keys Confirmed
 
-The Splunk bar chart shows event counts for all three auditd keys: persistence, privilege_escalation, and user_modification. The query `index=* source="/var/log/audit/audit.log" "user_modification" OR "persistence" OR "privilege_escalation" | stats count by key` returned 7 events total across 3 categories, confirming every simulated attack was detected.
+Running `ausearch -k user_modification`, `ausearch -k privilege_escalation`, and `ausearch -k persistence` returns hits for all three techniques. Every simulated attack (useradd hacker123, sudo -l, cron backdoor) was recorded.
 
-![Splunk Threat Hunt](screenshots/02-splunk-threat-hunt-results.png)
+![ausearch](screenshots/02-ausearch-results.png)
+
+---
+
+### 3. Splunk Bar Chart - Event Counts by Threat Category
+
+The Splunk hunt query returned 7 total events split across three auditd keys: persistence (cron modification), privilege_escalation (sudo usage), and user_modification (useradd). All three MITRE techniques confirmed detected in a single query.
+
+![Splunk Hunt](screenshots/03-splunk-threat-hunt-bar-chart.png)
 
 ---
 

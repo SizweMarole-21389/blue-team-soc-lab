@@ -179,8 +179,16 @@ index=* sourcetype=mail
 
 ## Screenshots
 
-### Phishing Email Sample - Header and IOC Analysis
+### 1. Phishing Email Sample - Full Email in Terminal
 
-The simulated phishing email in the terminal shows the fake Microsoft Security Alert with the malicious sender domain (microsoft-support.com) and credential harvesting URL (http://143.110.181.87/Microsoftlogin).
+The simulated phishing email displayed in the terminal. The fake Microsoft Security Alert contains the malicious sender domain (microsoft-support.com), urgency language, and the credential harvesting link (http://143.110.181.87/Microsoftlogin).
 
-![Phishing Analysis](screenshots/01-phishing-email-analysis.png)
+![Phishing Email](screenshots/01-phishing-email-sample.png)
+
+---
+
+### 2. IOC Extraction - Header Analysis and Indicator Summary
+
+Closer view of the phishing file showing the email headers, message body, and the extracted IOCs. The mismatch between the claimed sender (Microsoft) and the actual sending IP (143.110.181.87 on DigitalOcean infrastructure) is immediately visible.
+
+![IOC Extraction](screenshots/02-phishing-ioc-extraction.png)
