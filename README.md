@@ -215,7 +215,8 @@ Junior SOC Analyst | Blue Team Security Enthusiast
 
 - GitHub: [SizweMarole-21389](https://github.com/SizweMarole-21389)
 - Email: marolesizwe1@gmail.com
-- LinkedIn: [Add your LinkedIn URL here]
+- LinkedIn: www.linkedin.com/in/sizwemarole
+
 - Location: South Africa
 
 ---
